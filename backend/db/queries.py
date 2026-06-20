@@ -1,4 +1,6 @@
 import json
+import uuid
+from datetime import datetime, timezone
 from typing import Optional
 
 import aiosqlite
@@ -87,6 +89,45 @@ async def get_decision_options(event_id: str) -> list[dict]:
         rows = await conn.execute_fetchall(
             "SELECT * FROM decision_options WHERE event_id = ? ORDER BY id", (event_id,)
         )
+        return [dict(r) for r in rows]
+    finally:
+        await conn.close()
+
+
+async def create_decision_record(event_id: str, option_id: str, rationale: str, decided_by: str) -> dict:
+    conn = await _connect()
+    try:
+        record_id = f"rec-{uuid.uuid4().hex[:8]}"
+        decided_at = datetime.now(timezone.utc).isoformat()
+        await conn.execute(
+            "INSERT INTO decision_records (id, event_id, option_id, rationale, decided_by, decided_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (record_id, event_id, option_id, rationale, decided_by, decided_at),
+        )
+        await conn.commit()
+        return {
+            "id": record_id,
+            "event_id": event_id,
+            "option_id": option_id,
+            "rationale": rationale,
+            "decided_by": decided_by,
+            "decided_at": decided_at,
+            "outcome_notes": None,
+            "ai_model": None,
+        }
+    finally:
+        await conn.close()
+
+
+async def get_decision_records(event_id: Optional[str] = None) -> list[dict]:
+    conn = await _connect()
+    try:
+        query = "SELECT * FROM decision_records WHERE 1=1"
+        params: list[str] = []
+        if event_id:
+            query += " AND event_id = ?"
+            params.append(event_id)
+        rows = await conn.execute_fetchall(query + " ORDER BY decided_at DESC", params)
         return [dict(r) for r in rows]
     finally:
         await conn.close()

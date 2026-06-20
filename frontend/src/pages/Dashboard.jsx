@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import DecisionRoomView from '../components/decisionroom/DecisionRoomView.jsx'
 import OpsGraphView from '../components/opsgraph/OpsGraphView.jsx'
 
 const TABS = [
@@ -35,9 +36,7 @@ export default function Dashboard() {
       </div>
 
       {activeTab === 'opsgraph' && <OpsGraphView />}
-      {activeTab === 'decision' && (
-        <p style={{ color: 'var(--text-muted)' }}>DecisionRoom AI — coming in Phase 3.</p>
-      )}
+      {activeTab === 'decision' && <DecisionRoomView />}
       {activeTab === 'brief' && (
         <p style={{ color: 'var(--text-muted)' }}>MissionBrief AI — coming in Phase 4.</p>
       )}

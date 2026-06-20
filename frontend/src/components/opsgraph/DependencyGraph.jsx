@@ -21,9 +21,10 @@ export default function DependencyGraph({ objects, links, selectedId, affectedId
 
     const simulation = d3
       .forceSimulation(nodes)
-      .force('link', d3.forceLink(edges).id((d) => d.id).distance(90))
-      .force('charge', d3.forceManyBody().strength(-220))
+      .force('link', d3.forceLink(edges).id((d) => d.id).distance(110))
+      .force('charge', d3.forceManyBody().strength(-260))
       .force('center', d3.forceCenter(WIDTH / 2, HEIGHT / 2))
+      .force('collide', d3.forceCollide(46))
 
     const link = svg
       .append('g')
@@ -57,6 +58,10 @@ export default function DependencyGraph({ objects, links, selectedId, affectedId
       .attr('fill', 'var(--text-muted)')
       .attr('text-anchor', 'middle')
       .attr('dy', 26)
+      .attr('paint-order', 'stroke')
+      .attr('stroke', 'var(--bg)')
+      .attr('stroke-width', 4)
+      .attr('stroke-linejoin', 'round')
 
     simulation.on('tick', () => {
       link

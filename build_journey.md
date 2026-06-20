@@ -13,7 +13,7 @@ Every significant decision, problem encountered, and lesson learned goes here.
 | Phase 0 — Setup | Complete | 2026-06-19 | Local git repo only (no GitHub remote yet, by user choice). Backend uses `uv` not pip. |
 | Phase 1 — Data Foundation | Complete | 2026-06-19 | All GET routes verified live against seeded SQLite DB. |
 | Phase 2 — OpsGraph AI | Complete | 2026-06-20 | Live Sonnet impact analysis verified end-to-end in browser. |
-| Phase 3 — DecisionRoom AI | Pending | — | |
+| Phase 3 — DecisionRoom AI | Complete | 2026-06-20 | Live Sonnet recommendation verified end-to-end, approved in UI. |
 | Phase 4 — MissionBrief AI | Pending | — | |
 | Phase 5 — Track A HTML Demo | Pending | — | |
 | Phase 6 — Containerization + Deploy + Review | Pending | — | Folded Phase 7 tasks in |
@@ -128,6 +128,12 @@ Every significant decision, problem encountered, and lesson learned goes here.
 **What happened:** `POST /api/opsgraph/impact` always fell back to the logic-only degraded path. Root-caused by calling the real Anthropic API directly (bypassing the retry/fallback wrapper): Claude wraps its JSON response in a ` ```json ... ``` ` markdown fence. `json.loads()` on the raw text threw `Expecting value: line 1 column 1`, which the except block silently swallowed on both attempts, masking the real cause behind a generic "AI call failed" fallback.
 **How it was resolved:** Added `_extract_json()` in `services/ai_opsgraph.py` to strip a leading/trailing fence before parsing, added an explicit "no markdown code fences" instruction to the system prompt, and raised `max_tokens` from 1024 to 2048 so longer reasoning summaries aren't truncated mid-JSON. Verified live: `degraded_mode: false`, `confidence: 0.91`, full causal summary returned.
 **Applied in:** Same fix pattern should be used proactively in `ai_decision.py` and `ai_brief.py` in later phases — strip fences before any `json.loads()` on a Claude response.
+
+### PROBLEM — Dependency graph node labels rendered as garbled overlapping text
+**Encountered:** Phase 3 QA pass on the Phase 2 OpsGraph view, 2026-06-20
+**What happened:** The "Conveyor Line 3" label under its graph node looked corrupted/garbled in the browser. The underlying API data was verified clean (correct UTF-8, no mojibake) via raw JSON inspection — the cause was visual, not data: D3's force layout let edge lines cross directly through node labels, and tightly packed nodes let adjacent labels overlap each other.
+**How it was resolved:** Added a background "halo" stroke behind each label (`paint-order: stroke`, `stroke: var(--bg)`, `stroke-width: 4`) so text stays legible when an edge crosses it, and added `d3.forceCollide(46)` plus increased link distance/charge strength so nodes (and their labels) spread out rather than clustering.
+**Applied in:** `frontend/src/components/opsgraph/DependencyGraph.jsx`. Worth reusing the halo-stroke technique in any future D3 graph view (e.g. if MissionBrief ever visualizes a graph).
 
 *Further PROBLEM, LESSON, and DECISION entries will be added here as the build continues.*
 
