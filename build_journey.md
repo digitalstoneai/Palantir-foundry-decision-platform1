@@ -16,7 +16,7 @@ Every significant decision, problem encountered, and lesson learned goes here.
 | Phase 3 — DecisionRoom AI | Complete | 2026-06-20 | Live Sonnet recommendation verified end-to-end, approved in UI. |
 | Phase 4 — MissionBrief AI | Complete | 2026-06-20 | Live Haiku briefing + action propose/approve verified end-to-end, audit trail confirmed in DB. |
 | Phase 5 — Track A HTML Demo | Complete | 2026-06-20 | Verified in browser with no server running. |
-| Phase 6 — Containerization + Deploy + Review | Pending | — | Folded Phase 7 tasks in |
+| Phase 6 — Containerization + Deploy + Review | Complete | 2026-06-20 | Docker Compose verified locally; degraded-mode failover verified with a real induced API failure. Pushed to GitHub manually. Render/Vercel deploy intentionally left to the repo viewer — see README's "Deploying Track B" section. |
 
 ---
 
@@ -174,10 +174,9 @@ Every significant decision, problem encountered, and lesson learned goes here.
 
 ## Deploy Log
 
-*Populated in Phase 6.*
-
-| Surface | Platform | URL | Date |
+| Surface | Platform | Status | Notes |
 |---|---|---|---|
-| Track A (HTML demo) | GitHub Pages | — | — |
-| Track B backend | Render | — | — |
-| Track B frontend | Vercel | — | — |
+| Source repo | GitHub | Live | Pushed manually by repo owner. |
+| Track A (HTML demo) | Local file / optional GitHub Pages | Verified locally | Designed to be downloaded and opened directly — no hosting required. GitHub Pages is an optional convenience covered in the README. |
+| Track B backend | Render | Not deployed | Intentionally left for the repo viewer to connect with their own API key and account — see README's "Deploying Track B" section. |
+| Track B frontend | Vercel | Not deployed | Same as above. |

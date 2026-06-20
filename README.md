@@ -5,8 +5,8 @@ Three modules. One governed loop: see the operation → compare decisions → ex
 
 ---
 
-**Live Demo (Track A):** [GitHub Pages — link after deploy]  
-**Full System (Track B):** [Render + Vercel — link after deploy]
+**Track A Demo:** Standalone — download `demo/index.html` and open it directly in your browser, or preview it from this repo. No server, no build step, no account needed.
+**Track B (Real System):** Not deployed by default. See [Deploying Track B](#deploying-track-b-render--vercel) below — it's a few clicks against your own Render/Vercel accounts.
 
 ---
 
@@ -151,11 +151,19 @@ palantir-foundry-decision-platform/
 
 ## Run Locally
 
-### HTML Demo (Track A)
+### HTML Demo (Track A) — standalone, no setup
+
+`demo/index.html` is a single self-contained file. There is nothing to install and nothing to connect:
+
 ```bash
 open demo/index.html
-# or double-click it — no server needed
+# or just double-click it in your file browser — no server needed
 ```
+
+It uses pre-captured real AI responses (`SIM_*` constants, captured verbatim from live Sonnet/Haiku calls
+during development — see `build_journey.md`) instead of calling the API live, since a static HTML file can't
+safely hold a secret key. The real call functions are written in the file's `<script>` block, commented out,
+so you can see exactly what the live version does.
 
 ### Full System (Track B)
 
@@ -191,6 +199,49 @@ docker-compose up --build
 Backend: `http://localhost:8000`  
 Frontend: `http://localhost:5173`  
 API docs: `http://localhost:8000/docs`
+
+---
+
+## Deploying Track B (Render + Vercel)
+
+Track B is not deployed by default — running it live requires your own Anthropic API key and your own
+hosting accounts, so this is left for you to connect. Here's what each piece is for and exactly how to wire
+it up.
+
+### Render — backend hosting
+**Purpose:** Runs the FastAPI backend (the part that holds your `ANTHROPIC_API_KEY` and talks to Claude) as
+an always-on container with a persistent disk for the SQLite database. Render's free tier supports Docker
+builds and persistent disk, which Vercel/Netlify-style static hosts don't.
+
+**To connect:**
+1. Create a Render account, then **New → Web Service**, connect this GitHub repo.
+2. Set the root directory to `backend/`, and the build to use `backend/Dockerfile` (Render auto-detects it).
+3. Add environment variables in the Render dashboard: `ANTHROPIC_API_KEY` (your real key), `DATABASE_URL=./db/foundry.db`,
+   `FRONTEND_URL` (your eventual Vercel URL, can be updated after step below), `PORT=8000`, plus
+   `AI_MODEL_REASONING` / `AI_MODEL_FAST` if you want to override the defaults.
+4. Add a persistent disk mounted at `/app/db` so the SQLite database survives restarts/redeploys.
+5. Deploy. Once live, confirm `https://<your-service>.onrender.com/docs` loads the FastAPI Swagger UI —
+   that's the same proof-of-life check used throughout development.
+
+### Vercel — frontend hosting
+**Purpose:** Builds and serves the React/Vite frontend as a static site with zero server config.
+
+**To connect:**
+1. Create a Vercel account, **Add New → Project**, import this GitHub repo.
+2. Set the root directory to `frontend/`. Vercel auto-detects the Vite framework preset
+   (build command `npm run build`, output directory `dist`).
+3. Add the environment variable `VITE_API_BASE_URL=https://<your-render-service>.onrender.com` (the URL from
+   the Render step above).
+4. Deploy. Once live, go back to your Render service's `FRONTEND_URL` env var and set it to your new Vercel
+   URL, then redeploy the backend so CORS allows requests from it.
+
+### GitHub Pages — optional hosted preview of the Track A demo
+**Purpose:** The demo is meant to be downloaded and opened locally — that's the whole point of it being a
+single offline file. GitHub Pages is only useful if you'd rather send people a link than a file.
+
+**To connect:**
+1. In this repo's GitHub Settings → Pages, set the source to the `main` branch, `/demo` folder.
+2. Once enabled, `demo/index.html` is reachable directly at the Pages URL GitHub gives you — no build step.
 
 ---
 
