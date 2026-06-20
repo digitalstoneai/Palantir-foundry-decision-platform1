@@ -3,7 +3,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 
 from db import queries
-from models.ontology import Event, OntologyLink, OntologyObject
+from models.ontology import Event, ImpactAnalysisRequest, ImpactAnalysisResponse, OntologyLink, OntologyObject
+from services import ai_opsgraph
 
 router = APIRouter(prefix="/api/opsgraph", tags=["opsgraph"])
 
@@ -29,3 +30,21 @@ async def list_links(source_id: Optional[str] = None, target_id: Optional[str] =
 @router.get("/events", response_model=list[Event])
 async def list_events(severity: Optional[str] = None, resolved: Optional[bool] = None):
     return await queries.get_events(severity=severity, resolved=resolved)
+
+
+@router.post("/impact", response_model=ImpactAnalysisResponse)
+async def analyze_impact(request: ImpactAnalysisRequest):
+    target = await queries.get_object(request.object_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail=f"object '{request.object_id}' not found")
+
+    objects = await queries.get_objects()
+    links = await queries.get_links()
+    event = await queries.get_event(request.event_id) if request.event_id else None
+
+    return await ai_opsgraph.analyze_impact(
+        object_id=request.object_id,
+        objects=objects,
+        links=links,
+        event=event,
+    )

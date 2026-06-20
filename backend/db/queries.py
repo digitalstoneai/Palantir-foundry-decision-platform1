@@ -71,6 +71,16 @@ async def get_events(severity: Optional[str] = None, resolved: Optional[bool] = 
         await conn.close()
 
 
+async def get_event(event_id: str) -> Optional[dict]:
+    conn = await _connect()
+    try:
+        cursor = await conn.execute("SELECT * FROM events WHERE id = ?", (event_id,))
+        row = await cursor.fetchone()
+        return dict(row) | {"resolved": bool(row["resolved"])} if row else None
+    finally:
+        await conn.close()
+
+
 async def get_decision_options(event_id: str) -> list[dict]:
     conn = await _connect()
     try:

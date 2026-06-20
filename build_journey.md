@@ -12,7 +12,7 @@ Every significant decision, problem encountered, and lesson learned goes here.
 | Planning | Complete | 2026-06-18 | All five planning files produced. GitHub-ready folder packaged. |
 | Phase 0 — Setup | Complete | 2026-06-19 | Local git repo only (no GitHub remote yet, by user choice). Backend uses `uv` not pip. |
 | Phase 1 — Data Foundation | Complete | 2026-06-19 | All GET routes verified live against seeded SQLite DB. |
-| Phase 2 — OpsGraph AI | Pending | — | |
+| Phase 2 — OpsGraph AI | Complete | 2026-06-20 | Live Sonnet impact analysis verified end-to-end in browser. |
 | Phase 3 — DecisionRoom AI | Pending | — | |
 | Phase 4 — MissionBrief AI | Pending | — | |
 | Phase 5 — Track A HTML Demo | Pending | — | |
@@ -122,6 +122,12 @@ Every significant decision, problem encountered, and lesson learned goes here.
 **From:** Phase 1
 **Lesson:** `db/init_db.py` does `from core.config import DB_PATH`, a sibling-package import. Running it directly (`python db/init_db.py`) puts `db/` on `sys.path`, not `backend/`, so the import fails with `ModuleNotFoundError: No module named 'core'`. Running it as `uv run python -m db.init_db` from `backend/` puts the backend root on `sys.path` instead, which resolves correctly.
 **Applied in:** PLAN.md and README.md run instructions updated to use the `-m db.init_db` form.
+
+### PROBLEM — Impact analysis always returned degraded_mode despite a valid API key
+**Encountered:** Phase 2, 2026-06-20
+**What happened:** `POST /api/opsgraph/impact` always fell back to the logic-only degraded path. Root-caused by calling the real Anthropic API directly (bypassing the retry/fallback wrapper): Claude wraps its JSON response in a ` ```json ... ``` ` markdown fence. `json.loads()` on the raw text threw `Expecting value: line 1 column 1`, which the except block silently swallowed on both attempts, masking the real cause behind a generic "AI call failed" fallback.
+**How it was resolved:** Added `_extract_json()` in `services/ai_opsgraph.py` to strip a leading/trailing fence before parsing, added an explicit "no markdown code fences" instruction to the system prompt, and raised `max_tokens` from 1024 to 2048 so longer reasoning summaries aren't truncated mid-JSON. Verified live: `degraded_mode: false`, `confidence: 0.91`, full causal summary returned.
+**Applied in:** Same fix pattern should be used proactively in `ai_decision.py` and `ai_brief.py` in later phases — strip fences before any `json.loads()` on a Claude response.
 
 *Further PROBLEM, LESSON, and DECISION entries will be added here as the build continues.*
 
