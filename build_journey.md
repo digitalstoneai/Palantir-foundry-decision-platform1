@@ -10,8 +10,8 @@ Every significant decision, problem encountered, and lesson learned goes here.
 | Phase | Status | Date | Notes |
 |---|---|---|---|
 | Planning | Complete | 2026-06-18 | All five planning files produced. GitHub-ready folder packaged. |
-| Phase 0 — Setup | Pending | — | |
-| Phase 1 — Data Foundation | Pending | — | |
+| Phase 0 — Setup | Complete | 2026-06-19 | Local git repo only (no GitHub remote yet, by user choice). Backend uses `uv` not pip. |
+| Phase 1 — Data Foundation | Complete | 2026-06-19 | All GET routes verified live against seeded SQLite DB. |
 | Phase 2 — OpsGraph AI | Pending | — | |
 | Phase 3 — DecisionRoom AI | Pending | — | |
 | Phase 4 — MissionBrief AI | Pending | — | |
@@ -118,7 +118,12 @@ Every significant decision, problem encountered, and lesson learned goes here.
 
 ## Build Log
 
-*PROBLEM, LESSON, and additional DECISION entries will be added here during the build phase.*
+### LESSON — `init_db.py` must run as a module, not a script
+**From:** Phase 1
+**Lesson:** `db/init_db.py` does `from core.config import DB_PATH`, a sibling-package import. Running it directly (`python db/init_db.py`) puts `db/` on `sys.path`, not `backend/`, so the import fails with `ModuleNotFoundError: No module named 'core'`. Running it as `uv run python -m db.init_db` from `backend/` puts the backend root on `sys.path` instead, which resolves correctly.
+**Applied in:** PLAN.md and README.md run instructions updated to use the `-m db.init_db` form.
+
+*Further PROBLEM, LESSON, and DECISION entries will be added here as the build continues.*
 
 ### Format for build entries:
 

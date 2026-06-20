@@ -164,7 +164,7 @@ open demo/index.html
 cd backend
 uv sync
 cp .env.example .env       # add your ANTHROPIC_API_KEY
-uv run db/init_db.py       # create tables + seed data
+uv run python -m db.init_db  # create tables + seed data
 uv run uvicorn main:app --reload --port 8000
 ```
 

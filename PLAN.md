@@ -166,7 +166,7 @@ Tasks:
 - [ ] `uv init` in `backend/` — generates `pyproject.toml`; `uv add fastapi "uvicorn[standard]" anthropic pydantic python-dotenv aiosqlite`
 - [ ] Create `frontend/package.json` with exact dependencies
 - [ ] Run `uv sync` (backend) and `npm install` (frontend) — confirm clean installs
-- [ ] Initialize SQLite DB with `uv run db/init_db.py` — confirm tables created
+- [ ] Initialize SQLite DB with `uv run python -m db.init_db` — confirm tables created
 
 *Dependency: none — start here*
 
@@ -335,7 +335,7 @@ For Render deployment: Docker build from `./backend`, env vars set in Render das
 
 ### First three actions for Claude Code:
 1. `cd palantir-foundry-decision-platform/backend && uv sync && cd ../frontend && npm install` — confirm clean installs
-2. `uv run --directory backend db/init_db.py` — create tables and seed data, confirm all objects/links/events return from GET routes
+2. `cd backend && uv run python -m db.init_db` — create tables and seed data, confirm all objects/links/events return from GET routes
 3. Start Phase 2: implement `services/ai_opsgraph.py` and `POST /api/opsgraph/impact` — this is the first AI call in the system
 
 ### Open questions before deploy:
