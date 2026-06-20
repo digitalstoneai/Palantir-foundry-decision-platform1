@@ -15,7 +15,7 @@ Every significant decision, problem encountered, and lesson learned goes here.
 | Phase 2 — OpsGraph AI | Complete | 2026-06-20 | Live Sonnet impact analysis verified end-to-end in browser. |
 | Phase 3 — DecisionRoom AI | Complete | 2026-06-20 | Live Sonnet recommendation verified end-to-end, approved in UI. |
 | Phase 4 — MissionBrief AI | Complete | 2026-06-20 | Live Haiku briefing + action propose/approve verified end-to-end, audit trail confirmed in DB. |
-| Phase 5 — Track A HTML Demo | Pending | — | |
+| Phase 5 — Track A HTML Demo | Complete | 2026-06-20 | Verified in browser with no server running. |
 | Phase 6 — Containerization + Deploy + Review | Pending | — | Folded Phase 7 tasks in |
 
 ---

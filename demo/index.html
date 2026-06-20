@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Foundry Operational Decision Platform — Demo</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+  :root {
+    --bg:           #0d1117;
+    --surface:      #161b22;
+    --surface-2:    #1c2128;
+    --surface-3:    #21262d;
+    --border:       #30363d;
+    --blue:         #58a6ff;
+    --purple:       #bc8cff;
+    --orange:       #e3b341;
+    --red:          #f85149;
+    --text:         #e6edf3;
+    --text-muted:   #8b949e;
+    --text-subtle:  #484f58;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+  .wrap { padding: 24px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .subtitle { color: var(--text-muted); font-size: 13px; margin-bottom: 20px; }
+  .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .tab-btn {
+    background: none; border: none; color: var(--text-muted);
+    border-bottom: 2px solid transparent; padding: 10px 4px; margin-right: 16px;
+    cursor: pointer; font-size: 14px;
+  }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--purple); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+  .panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 6px; padding: 16px;
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 12px;
+    padding: 2px 8px; border-radius: 4px; font-weight: 600;
+  }
+  .grid-3 { display: grid; grid-template-columns: 260px 1fr 320px; gap: 16px; }
+  .grid-3b { display: grid; grid-template-columns: 1fr 280px 1fr; gap: 16px; }
+  .grid-3c { display: grid; grid-template-columns: 220px 1fr 1fr; gap: 16px; }
+  ul.plain { list-style: none; padding: 0; margin: 0; }
+  .obj-btn {
+    width: 100%; text-align: left; border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); padding: 8px 10px; cursor: pointer; margin-bottom: 6px;
+    display: flex; justify-content: space-between; gap: 8px; background: var(--surface-2);
+  }
+  .obj-btn.selected { background: var(--surface-3); }
+  select, input[type=range], button.action-btn {
+    background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 4px; padding: 8px;
+  }
+  button { font-family: inherit; }
+  .note { color: var(--text-subtle); font-size: 11px; margin-top: 24px; }
+  .stub-note {
+    background: var(--surface-2); border: 1px dashed var(--border); border-radius: 4px;
+    padding: 8px 10px; font-size: 11px; color: var(--text-muted); margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Palantir Foundry Operational Decision Platform</h1>
+  <p class="subtitle">Track A demo — static, no backend. Uses pre-captured AI responses (SIM_*) that match the real API schema exactly.</p>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="opsgraph">OpsGraph AI</button>
+    <button class="tab-btn" data-tab="decision">DecisionRoom AI</button>
+    <button class="tab-btn" data-tab="brief">MissionBrief AI</button>
+  </div>
+
+  <div id="tab-opsgraph" class="tab-panel active">
+    <div class="grid-3">
+      <div class="panel">
+        <h3 style="margin-top:0">Objects</h3>
+        <ul class="plain" id="object-list"></ul>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">Dependency Graph</h3>
+        <svg id="graph" width="480" height="420"></svg>
+      </div>
+      <div class="panel" id="impact-panel">
+        <h3 style="margin-top:0">Impact Analysis</h3>
+        <p style="color:var(--text-muted)">Select an object to view impact analysis.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-decision" class="tab-panel">
+    <div class="grid-3b">
+      <div class="panel">
+        <h3 style="margin-top:0">Event</h3>
+        <select id="event-select" style="width:100%; margin-bottom:16px;"></select>
+        <h3>Response Options</h3>
+        <ul class="plain" id="option-list"></ul>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:16px;">
+        <div class="panel">
+          <h3 style="margin-top:0">Constraint Weights</h3>
+          <div id="constraint-sliders"></div>
+          <p class="stub-note">Sliders are cosmetic in this static demo — the recommendation below is a pre-captured real response, not recomputed live.</p>
+        </div>
+        <button class="action-btn" id="recommend-btn" style="cursor:pointer;">Get Recommendation</button>
+      </div>
+      <div class="panel" id="recommendation-panel">
+        <h3 style="margin-top:0">Recommendation</h3>
+        <p style="color:var(--text-muted)">Select an event and request a recommendation.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="tab-brief" class="tab-panel">
+    <div class="grid-3c">
+      <div class="panel">
+        <h3 style="margin-top:0">Role</h3>
+        <div id="role-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+      <div class="panel" id="briefing-panel">
+        <h3 style="margin-top:0">Briefing</h3>
+        <p style="color:var(--text-muted)">Select a role to generate a briefing.</p>
+      </div>
+      <div class="panel">
+        <h3 style="margin-top:0">Governed Actions</h3>
+        <div style="display:flex; gap:8px; margin-bottom:16px;">
+          <select id="action-object" style="flex:1;"></select>
+          <select id="action-type">
+            <option>reassign</option><option selected>escalate</option><option>schedule</option>
+            <option>notify</option><option>defer</option>
+          </select>
+          <button class="action-btn" id="propose-btn" style="cursor:pointer;">Propose</button>
+        </div>
+        <ul class="plain" id="action-list"></ul>
+      </div>
+    </div>
+  </div>
+
+  <p class="note">
+    This demo uses SIM_* constants captured from real Anthropic API calls made during development
+    (see build_journey.md). The real AI call functions are written below, commented out — they are
+    the exact same code used in backend/services/. Enabling them here would require a server-side
+    proxy (the Anthropic API cannot be called directly from a static page with a secret key), which
+    is what Track B (backend/ + frontend/) provides.
+  </p>
+</div>
+
+<script>
+// ---------- Inline ontology data (mirrors backend/db/init_db.py seed data) ----------
+const OBJECTS = [
+  { id: "fac-dc-east", type: "facility", name: "Distribution Center East", status: "nominal" },
+  { id: "fac-dc-west", type: "facility", name: "Distribution Center West", status: "nominal" },
+  { id: "ast-conveyor-3", type: "asset", name: "Conveyor Line 3", status: "critical" },
+  { id: "ast-forklift-a", type: "asset", name: "Forklift Fleet A", status: "nominal" },
+  { id: "ord-48217", type: "order", name: "Order #48217 — Regional Retail Restock", status: "at_risk" },
+  { id: "inc-conveyor-fail", type: "incident", name: "Conveyor Line 3 Motor Failure", status: "critical" },
+];
+
+const LINKS = [
+  { source_id: "ast-conveyor-3", target_id: "fac-dc-east", type: "located_at" },
+  { source_id: "ast-forklift-a", target_id: "fac-dc-east", type: "located_at" },
+  { source_id: "ord-48217", target_id: "ast-conveyor-3", type: "depends_on" },
+  { source_id: "ord-48217", target_id: "fac-dc-east", type: "depends_on" },
+  { source_id: "fac-dc-east", target_id: "ord-48217", type: "serves" },
+  { source_id: "fac-dc-west", target_id: "ord-48217", type: "serves" },
+  { source_id: "inc-conveyor-fail", target_id: "ast-conveyor-3", type: "affects" },
+  { source_id: "inc-conveyor-fail", target_id: "ord-48217", type: "affects" },
+];
+
+const EVENTS = [
+  { id: "evt-001", severity: "urgent", description: "Conveyor Line 3 motor temperature exceeded threshold; line stopped automatically." },
+  { id: "evt-002", severity: "high", description: "Order #48217 fulfillment at risk due to conveyor outage; SLA breach in 6 hours." },
+  { id: "evt-003", severity: "normal", description: "DC West capacity increased to support potential reroute." },
+];
+
+const DECISION_OPTIONS = {
+  "evt-001": [
+    { id: "opt-001", label: "Reroute to DC West", description: "Shift remaining order volume to Distribution Center West for the duration of the outage.", cost_impact: 4200, service_impact: -0.05, risk_score: 0.2 },
+    { id: "opt-002", label: "Expedite repair crew", description: "Call in an after-hours technician to repair the conveyor motor on-site.", cost_impact: 1800, service_impact: -0.15, risk_score: 0.35 },
+    { id: "opt-003", label: "Manual conveyor bypass", description: "Route packages manually around the failed segment using floor staff.", cost_impact: 600, service_impact: -0.25, risk_score: 0.55 },
+    { id: "opt-004", label: "Delay order, notify customer", description: "Push the order fulfillment date and proactively notify the customer of the delay.", cost_impact: 200, service_impact: -0.6, risk_score: 0.1 },
+  ],
+};
+
+// ---------- SIM_* constants — captured verbatim from real Sonnet/Haiku responses during Phase 2-4 ----------
+const SIM_IMPACT = {
+  object_id: "ast-conveyor-3",
+  affected_objects: ["inc-conveyor-fail", "ord-48217", "fac-dc-east"],
+  dependency_path: [
+    { from: "inc-conveyor-fail", to: "ast-conveyor-3", relation: "affects" },
+    { from: "ast-conveyor-3", to: "fac-dc-east", relation: "located_at" },
+    { from: "ord-48217", to: "ast-conveyor-3", relation: "depends_on" },
+    { from: "ord-48217", to: "fac-dc-east", relation: "depends_on" },
+    { from: "fac-dc-east", to: "ord-48217", relation: "serves" },
+    { from: "inc-conveyor-fail", to: "ord-48217", relation: "affects" },
+  ],
+  summary: "The motor overtemperature event on Conveyor Line 3 triggered an automatic shutdown, directly impacting the asset and the active incident inc-conveyor-fail. Order #48217 (Regional Retail Restock) is at high risk because it has a direct dependency on both ast-conveyor-3 (weight 0.9) and fac-dc-east (weight 0.8), and the incident independently affects that order (weight 0.7) with a tight 6-hour SLA. Distribution Center East is implicated as the host facility for the downed conveyor, degrading its overall throughput capacity, though fac-dc-west has a low-weight (0.4) serves relationship to the order that may offer partial mitigation.",
+  confidence: 0.91,
+  ai_model: "claude-sonnet-4-6",
+  degraded_mode: false,
+};
+
+const SIM_RECOMMENDATION = {
+  recommended_option_id: "opt-001",
+  rationale: "Rerouting to DC West scores best across the weighted constraint profile: its cost impact of $4,200 remains well under the $5,000 threshold, its service impact of -0.05 is the least disruptive of all options (critical given service carries a 0.4 weight), and its risk score of 0.20 is safely below the 0.50 threshold. While it is the second most expensive option, the combination of minimal service degradation and low operational risk makes it the strongest overall choice for an urgent, unresolved outage.",
+  confidence: 0.82,
+  tradeoff_summary: "The cost-vs-service tradeoff drove this decision most significantly: opt-004 is cheapest but incurs a severe service penalty (-0.60) that violates the 0.30 service threshold, and opt-003 also breaches the risk threshold (0.55). opt-001's higher cost is justified by its superior service and risk scores given equal weighting between cost and service.",
+  constraint_scores: { cost: 0.84, service: 0.98, risk: 0.9 },
+  ai_model: "claude-sonnet-4-6",
+  degraded_mode: false,
+};
+
+const SIM_BRIEFING = {
+  content: "**URGENT: Conveyor Line 3 at Distribution Center East is down due to motor failure, halting operations.** The line stopped automatically when motor temperature exceeded safe limits. This outage directly threatens Order #48217 (Regional Retail Restock), which has an SLA deadline of 6 hours and is currently at risk of breach. **Immediate action required:** Dispatch maintenance to repair the motor, or activate contingency fulfillment through DC West, which has already increased capacity to support reroute options.",
+  top_exceptions: ["evt-001", "evt-002"],
+  ai_model: "claude-haiku-4-5-20251001",
+};
+
+const SIM_ACTION_RATIONALE = "Escalation is appropriate for Conveyor Line 3 because it is currently in a critical status, indicating an urgent operational issue that requires immediate attention from higher-level personnel or management. The asset has no assigned owner, which suggests the problem may have fallen through responsibility gaps and needs swift elevation to ensure rapid response and resolution.";
+
+// ---------- Real AI call functions (commented out) — identical pattern to backend/services/ai_*.py ----------
+// To enable real calls here you would need a server-side proxy (Anthropic keys cannot be used
+// from a static page), which is exactly what Track B's FastAPI backend provides. This file only
+// ever uses the SIM_* constants above.
+//
+// async function analyzeImpactReal(objectId) {
+//   const res = await fetch(`${BACKEND_URL}/api/opsgraph/impact`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({ object_id: objectId }),
+//   });
+//   return res.json();
+// }
+// async function recommendOptionReal(eventId, constraints) {
+//   const res = await fetch(`${BACKEND_URL}/api/decision/recommend`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({ event_id: eventId, constraints }),
+//   });
+//   return res.json();
+// }
+// async function generateBriefingReal(role) {
+//   const res = await fetch(`${BACKEND_URL}/api/brief/generate`, {
+//     method: "POST",
+//     headers: { "Content-Type": "application/json" },
+//     body: JSON.stringify({ role }),
+//   });
+//   return res.json();
+// }
+
+// ---------- Tab switching ----------
+document.querySelectorAll(".tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(`tab-${btn.dataset.tab}`).classList.add("active");
+  });
+});
+
+const STATUS_COLOR = { nominal: "var(--blue)", at_risk: "var(--orange)", degraded: "var(--orange)", critical: "var(--red)" };
+
+// ---------- OpsGraph tab ----------
+let selectedObjectId = null;
+
+function renderObjectList() {
+  const list = document.getElementById("object-list");
+  list.innerHTML = "";
+  OBJECTS.forEach((obj) => {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.className = "obj-btn" + (obj.id === selectedObjectId ? " selected" : "");
+    btn.innerHTML = `<span>${obj.name}</span><span class="badge" style="background:${STATUS_COLOR[obj.status]}26;color:${STATUS_COLOR[obj.status]}">${obj.status}</span>`;
+    btn.addEventListener("click", () => {
+      selectedObjectId = obj.id;
+      renderObjectList();
+      renderGraph();
+      renderImpactPanel();
+    });
+    li.appendChild(btn);
+    list.appendChild(li);
+  });
+}
+
+function renderImpactPanel() {
+  const panel = document.getElementById("impact-panel");
+  if (!selectedObjectId) {
+    panel.innerHTML = `<h3 style="margin-top:0">Impact Analysis</h3><p style="color:var(--text-muted)">Select an object to view impact analysis.</p>`;
+    return;
+  }
+  // Demo always shows the captured SIM_IMPACT result (it was generated for ast-conveyor-3).
+  const r = SIM_IMPACT;
+  panel.innerHTML = `
+    <h3 style="margin-top:0">Impact Analysis</h3>
+    <div style="display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap;">
+      <span class="badge" style="background:rgba(188,140,255,0.15);color:var(--purple)">${r.ai_model}</span>
+    </div>
+    <p>${r.summary}</p>
+    <p style="color:var(--text-muted); font-size:13px;">Affected objects: ${r.affected_objects.join(", ")}</p>
+  `;
+}
+
+function renderGraph() {
+  const svg = d3.select("#graph");
+  svg.selectAll("*").remove();
+  const width = 480, height = 420;
+
+  const nodes = OBJECTS.map((o) => ({ ...o }));
+  const edges = LINKS.map((l) => ({ source: l.source_id, target: l.target_id, type: l.type }));
+  const affected = selectedObjectId ? SIM_IMPACT.affected_objects : [];
+
+  const simulation = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(edges).id((d) => d.id).distance(110))
+    .force("charge", d3.forceManyBody().strength(-260))
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("collide", d3.forceCollide(46));
+
+  const link = svg.append("g").selectAll("line").data(edges).join("line")
+    .attr("stroke", "var(--border)").attr("stroke-width", 1.5);
+
+  const node = svg.append("g").selectAll("circle").data(nodes).join("circle")
+    .attr("r", 14)
+    .attr("fill", (d) => d.id === selectedObjectId ? "var(--purple)" : affected.includes(d.id) ? "var(--orange)" : "var(--blue)")
+    .attr("stroke", "var(--surface)").attr("stroke-width", 2);
+
+  const label = svg.append("g").selectAll("text").data(nodes).join("text")
+    .text((d) => d.name).attr("font-size", 10).attr("fill", "var(--text-muted)")
+    .attr("text-anchor", "middle").attr("dy", 26)
+    .attr("paint-order", "stroke").attr("stroke", "var(--bg)").attr("stroke-width", 4).attr("stroke-linejoin", "round");
+
+  simulation.on("tick", () => {
+    link.attr("x1", (d) => d.source.x).attr("y1", (d) => d.source.y).attr("x2", (d) => d.target.x).attr("y2", (d) => d.target.y);
+    node.attr("cx", (d) => d.x).attr("cy", (d) => d.y);
+    label.attr("x", (d) => d.x).attr("y", (d) => d.y);
+  });
+}
+
+// ---------- DecisionRoom tab ----------
+const CONSTRAINTS = [
+  { name: "cost", weight: 0.4 },
+  { name: "service", weight: 0.4 },
+  { name: "risk", weight: 0.2 },
+];
+
+function renderEventSelect() {
+  const select = document.getElementById("event-select");
+  select.innerHTML = `<option value="" disabled selected>Select an event...</option>`;
+  EVENTS.forEach((evt) => {
+    const hasOptions = !!DECISION_OPTIONS[evt.id];
+    const opt = document.createElement("option");
+    opt.value = evt.id;
+    opt.disabled = !hasOptions;
+    opt.textContent = `[${evt.severity}] ${evt.description.slice(0, 50)}${hasOptions ? "" : " — no response options"}`;
+    select.appendChild(opt);
+  });
+  select.addEventListener("change", () => renderOptionList(select.value));
+}
+
+function renderOptionList(eventId) {
+  const list = document.getElementById("option-list");
+  const options = DECISION_OPTIONS[eventId] || [];
+  list.innerHTML = options.length
+    ? ""
+    : `<p style="color:var(--text-muted)">No response options for this event.</p>`;
+  options.forEach((opt) => {
+    const li = document.createElement("li");
+    li.className = "panel";
+    li.style.marginBottom = "8px";
+    li.style.padding = "10px";
+    li.innerHTML = `<strong>${opt.label}</strong><p style="font-size:13px;color:var(--text-muted);margin:6px 0">${opt.description}</p>
+      <div style="display:flex;gap:12px;font-size:12px;color:var(--text-muted)">
+        <span>cost: $${opt.cost_impact}</span><span>service: ${opt.service_impact}</span><span>risk: ${opt.risk_score}</span>
+      </div>`;
+    list.appendChild(li);
+  });
+  document.getElementById("recommendation-panel").innerHTML = `<h3 style="margin-top:0">Recommendation</h3><p style="color:var(--text-muted)">Select an event and request a recommendation.</p>`;
+}
+
+function renderConstraintSliders() {
+  const container = document.getElementById("constraint-sliders");
+  container.innerHTML = "";
+  CONSTRAINTS.forEach((c) => {
+    const row = document.createElement("div");
+    row.style.marginBottom = "14px";
+    row.innerHTML = `
+      <div style="display:flex;justify-content:space-between;font-size:13px;">
+        <span style="text-transform:capitalize">${c.name}</span><span style="color:var(--text-muted)">weight ${c.weight.toFixed(2)}</span>
+      </div>
+      <input type="range" min="0" max="1" step="0.05" value="${c.weight}" style="width:100%">`;
+    container.appendChild(row);
+  });
+}
+
+document.getElementById("recommend-btn").addEventListener("click", () => {
+  const select = document.getElementById("event-select");
+  const panel = document.getElementById("recommendation-panel");
+  if (!select.value) {
+    panel.innerHTML = `<h3 style="margin-top:0">Recommendation</h3><p style="color:var(--text-muted)">Select an event first.</p>`;
+    return;
+  }
+  const r = SIM_RECOMMENDATION;
+  const recommendedOption = (DECISION_OPTIONS[select.value] || []).find((o) => o.id === r.recommended_option_id);
+  panel.innerHTML = `
+    <h3 style="margin-top:0">Recommendation</h3>
+    <span class="badge" style="background:rgba(188,140,255,0.15);color:var(--purple)">${r.ai_model}</span>
+    <p style="font-size:15px;margin-top:10px"><strong>${recommendedOption ? recommendedOption.label : r.recommended_option_id}</strong></p>
+    <p>${r.rationale}</p>
+    <p style="color:var(--text-muted);font-size:13px">${r.tradeoff_summary}</p>
+    <h4 style="margin-bottom:6px">Constraint Scores</h4>
+    <ul class="plain" style="font-size:13px">
+      ${Object.entries(r.constraint_scores).map(([name, score]) => `<li style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="text-transform:capitalize;color:var(--text-muted)">${name}</span><span>${score.toFixed(2)}</span></li>`).join("")}
+    </ul>
+  `;
+});
+
+// ---------- MissionBrief tab ----------
+const ROLES = [
+  { id: "operations_manager", label: "Operations Manager" },
+  { id: "planner", label: "Planner" },
+  { id: "maintenance_lead", label: "Maintenance Lead" },
+  { id: "logistics_lead", label: "Logistics Lead" },
+];
+
+function renderRoleList() {
+  const container = document.getElementById("role-list");
+  container.innerHTML = "";
+  ROLES.forEach((role) => {
+    const btn = document.createElement("button");
+    btn.className = "action-btn";
+    btn.style.textAlign = "left";
+    btn.style.cursor = "pointer";
+    btn.textContent = role.label;
+    btn.addEventListener("click", () => renderBriefing(role));
+    container.appendChild(btn);
+  });
+}
+
+function renderBriefing(role) {
+  const panel = document.getElementById("briefing-panel");
+  const r = SIM_BRIEFING;
+  const content = r.content.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  panel.innerHTML = `
+    <h3 style="margin-top:0">Briefing</h3>
+    <span class="badge" style="background:rgba(188,140,255,0.15);color:var(--purple)">${r.ai_model}</span>
+    <p style="margin-top:12px;line-height:1.5">${content}</p>
+    <h4 style="margin-bottom:6px">Top Exceptions</h4>
+    <ul class="plain" style="color:var(--text-muted);font-size:13px;padding-left:18px;list-style:disc">
+      ${r.top_exceptions.map((id) => `<li>${id}</li>`).join("")}
+    </ul>
+  `;
+}
+
+const proposedActions = [];
+
+function renderActionObjectSelect() {
+  const select = document.getElementById("action-object");
+  select.innerHTML = "";
+  OBJECTS.forEach((o) => {
+    const opt = document.createElement("option");
+    opt.value = o.id;
+    opt.textContent = o.name;
+    select.appendChild(opt);
+  });
+}
+
+function renderActionList() {
+  const list = document.getElementById("action-list");
+  list.innerHTML = "";
+  proposedActions.forEach((action, i) => {
+    const li = document.createElement("li");
+    li.className = "panel";
+    li.style.marginBottom = "8px";
+    li.style.padding = "10px";
+    const statusColor = action.status === "executed" ? "var(--blue)" : action.status === "rejected" ? "var(--red)" : "var(--orange)";
+    li.innerHTML = `
+      <span class="badge" style="background:${statusColor}26;color:${statusColor}">${action.status}</span>
+      <p style="font-size:13px;color:var(--text-muted);margin:8px 0">${action.rationale}</p>
+    `;
+    if (action.status === "pending") {
+      const approveBtn = document.createElement("button");
+      approveBtn.textContent = "Approve";
+      approveBtn.className = "action-btn";
+      approveBtn.style.cursor = "pointer";
+      approveBtn.style.marginRight = "8px";
+      approveBtn.style.background = "var(--purple)";
+      approveBtn.style.color = "#0d1117";
+      approveBtn.addEventListener("click", () => { action.status = "executed"; renderActionList(); });
+      const rejectBtn = document.createElement("button");
+      rejectBtn.textContent = "Reject";
+      rejectBtn.className = "action-btn";
+      rejectBtn.style.cursor = "pointer";
+      rejectBtn.addEventListener("click", () => { action.status = "rejected"; renderActionList(); });
+      li.appendChild(approveBtn);
+      li.appendChild(rejectBtn);
+    }
+    list.appendChild(li);
+  });
+}
+
+document.getElementById("propose-btn").addEventListener("click", () => {
+  proposedActions.unshift({ status: "pending", rationale: SIM_ACTION_RATIONALE });
+  renderActionList();
+});
+
+// ---------- Init ----------
+renderObjectList();
+renderGraph();
+renderEventSelect();
+renderConstraintSliders();
+renderRoleList();
+renderActionObjectSelect();
+renderActionList();
+</script>
+</body>
+</html>
