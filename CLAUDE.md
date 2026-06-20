@@ -580,7 +580,6 @@ CMD ["uv", "run", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 Backend only. Frontend deploys to Vercel directly — no nginx container needed.
 
 ```yaml
-version: "3.9"
 services:
   backend:
     build: ./backend

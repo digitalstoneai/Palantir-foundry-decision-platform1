@@ -141,6 +141,15 @@ Every significant decision, problem encountered, and lesson learned goes here.
 **How it was resolved:** Confirmed via the API directly (`GET /api/decision/options/evt-002` returns `[]`, not an error) that this was the intended seed data, not a regression. Updated `ScenarioPanel.jsx` to prefetch option counts per event and disable/label dropdown entries with "— no response options" up front, and reworded the empty-state message to explain why.
 **Applied in:** `frontend/src/components/decisionroom/DecisionRoomView.jsx`, `ScenarioPanel.jsx`.
 
+### LESSON — docker-compose `version` key is obsolete on current Compose
+**From:** Phase 6
+**Lesson:** `docker compose up` (v5.1.4) warned that `version: "3.9"` in `docker-compose.yml` is obsolete and ignored. Removed it from both `docker-compose.yml` and the CLAUDE.md spec snippet — Compose now infers the schema version automatically.
+**Applied in:** `docker-compose.yml`, `CLAUDE.md`.
+
+### DECISION — Verified degraded-mode fallback via a real induced failure, not a mock
+**Decision:** Tested the two-path error handling by temporarily setting `AI_MODEL_REASONING` to an invalid model ID in `backend/.env`, recreating the container, and confirming `/api/opsgraph/impact` returns `degraded_mode: true` with the logic-only BFS fallback and an honest `ai_model` field. Restored the real model afterward and confirmed normal operation resumed.
+**Reason:** A mocked/forced exception in code would only prove the `except` branch is reachable, not that the real retry-then-fallback path behaves correctly end-to-end through a real Anthropic API error. Inducing an actual API failure (invalid model ID) and observing the real response is stronger evidence the error-handling contract holds in production conditions.
+
 *Further PROBLEM, LESSON, and DECISION entries will be added here as the build continues.*
 
 ### Format for build entries:
