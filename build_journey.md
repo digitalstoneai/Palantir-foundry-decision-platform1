@@ -14,7 +14,7 @@ Every significant decision, problem encountered, and lesson learned goes here.
 | Phase 1 — Data Foundation | Complete | 2026-06-19 | All GET routes verified live against seeded SQLite DB. |
 | Phase 2 — OpsGraph AI | Complete | 2026-06-20 | Live Sonnet impact analysis verified end-to-end in browser. |
 | Phase 3 — DecisionRoom AI | Complete | 2026-06-20 | Live Sonnet recommendation verified end-to-end, approved in UI. |
-| Phase 4 — MissionBrief AI | Pending | — | |
+| Phase 4 — MissionBrief AI | Complete | 2026-06-20 | Live Haiku briefing + action propose/approve verified end-to-end, audit trail confirmed in DB. |
 | Phase 5 — Track A HTML Demo | Pending | — | |
 | Phase 6 — Containerization + Deploy + Review | Pending | — | Folded Phase 7 tasks in |
 
@@ -134,6 +134,12 @@ Every significant decision, problem encountered, and lesson learned goes here.
 **What happened:** The "Conveyor Line 3" label under its graph node looked corrupted/garbled in the browser. The underlying API data was verified clean (correct UTF-8, no mojibake) via raw JSON inspection — the cause was visual, not data: D3's force layout let edge lines cross directly through node labels, and tightly packed nodes let adjacent labels overlap each other.
 **How it was resolved:** Added a background "halo" stroke behind each label (`paint-order: stroke`, `stroke: var(--bg)`, `stroke-width: 4`) so text stays legible when an edge crosses it, and added `d3.forceCollide(46)` plus increased link distance/charge strength so nodes (and their labels) spread out rather than clustering.
 **Applied in:** `frontend/src/components/opsgraph/DependencyGraph.jsx`. Worth reusing the halo-stroke technique in any future D3 graph view (e.g. if MissionBrief ever visualizes a graph).
+
+### PROBLEM — DecisionRoom AI looked unresponsive for two of the three seeded events
+**Encountered:** Phase 4 QA pass, 2026-06-20
+**What happened:** Selecting `evt-002` or `evt-003` in the event dropdown left the option list empty and the "Get Recommendation" button disabled, which read as broken. Root cause: by design from Phase 1, `decision_options` was only seeded for the urgent conveyor-failure event (`evt-001`) — the other two events never had response options. The UI gave no signal *why* the button was disabled, so a correct empty-state looked like a bug.
+**How it was resolved:** Confirmed via the API directly (`GET /api/decision/options/evt-002` returns `[]`, not an error) that this was the intended seed data, not a regression. Updated `ScenarioPanel.jsx` to prefetch option counts per event and disable/label dropdown entries with "— no response options" up front, and reworded the empty-state message to explain why.
+**Applied in:** `frontend/src/components/decisionroom/DecisionRoomView.jsx`, `ScenarioPanel.jsx`.
 
 *Further PROBLEM, LESSON, and DECISION entries will be added here as the build continues.*
 

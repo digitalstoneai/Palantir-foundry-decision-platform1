@@ -12,6 +12,7 @@ const INITIAL_CONSTRAINTS = [
 
 export default function DecisionRoomView() {
   const [events, setEvents] = useState([])
+  const [eventOptionCounts, setEventOptionCounts] = useState({})
   const [selectedEventId, setSelectedEventId] = useState(null)
   const [options, setOptions] = useState([])
   const [constraints, setConstraints] = useState(INITIAL_CONSTRAINTS)
@@ -21,7 +22,15 @@ export default function DecisionRoomView() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    apiFetch('/api/opsgraph/events').then(setEvents)
+    apiFetch('/api/opsgraph/events').then(async (fetchedEvents) => {
+      setEvents(fetchedEvents)
+      const counts = await Promise.all(
+        fetchedEvents.map((evt) =>
+          apiFetch(`/api/decision/options/${evt.id}`).then((opts) => [evt.id, opts.length]),
+        ),
+      )
+      setEventOptionCounts(Object.fromEntries(counts))
+    })
   }, [])
 
   useEffect(() => {
@@ -61,6 +70,7 @@ export default function DecisionRoomView() {
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px 1fr', gap: 16 }}>
       <ScenarioPanel
         events={events}
+        eventOptionCounts={eventOptionCounts}
         selectedEventId={selectedEventId}
         onSelectEvent={setSelectedEventId}
         options={options}

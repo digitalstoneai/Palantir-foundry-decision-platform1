@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import FRONTEND_URL
-from routers import decisionroom, opsgraph
+from routers import decisionroom, missionbrief, opsgraph
 
 app = FastAPI(title="Palantir Foundry Operational Decision Platform")
 
@@ -15,3 +15,4 @@ app.add_middleware(
 
 app.include_router(opsgraph.router)
 app.include_router(decisionroom.router)
+app.include_router(missionbrief.router)
